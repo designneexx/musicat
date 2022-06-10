@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html, body {
+
+    }
+
+    #__next {
+        padding-bottom: 200px;
+    }
+}
+
+@layer components {
+    .container {
+        max-width: 1280px;
+        @apply w-full mx-auto;
+    }
+}
