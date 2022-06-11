@@ -1,6 +1,5 @@
 import { HeartIcon as OutHeaderIcon } from '@heroicons/react/outline'
 import { HeartIcon } from '@heroicons/react/solid'
-import { nanoid } from '@reduxjs/toolkit'
 import cx from 'classnames'
 import { useRouter } from 'next/router'
 import React from 'react'
@@ -26,21 +25,16 @@ export default function Tracklist({
   const track = active?.track ?? null
 
   function isFavorite(track: Track) {
-    return Boolean(favorites.find((item) => item.track.id === track.id))
+    return Boolean(favorites.find((item) => item.id === track.id))
   }
 
   function onAddTrackToFavorite(track: Track) {
     return () => {
-      dispatch(
-        toggleTrackToFavorite({
-          id: nanoid(),
-          track,
-        })
-      )
+      dispatch(toggleTrackToFavorite(track))
     }
   }
 
-  function onSaveImage(id: number) {
+  function onRedirectToPlaylist(id: number) {
     return () => {
       router.push({
         pathname: `/playlist/${id}`,
@@ -123,7 +117,7 @@ export default function Tracklist({
                     </figure>
                     <div className="text-sm">
                       Альбом:{' '}
-                      <button onClick={onSaveImage(album.id)}>
+                      <button onClick={onRedirectToPlaylist(album.id)}>
                         <span className="font-bold cursor-pointer">
                           {album.title}
                         </span>

@@ -2,11 +2,7 @@ import React from 'react'
 
 import { useAudio } from '@/hooks/useAudio'
 import { useAppDispatch, useAppSelector } from '@/store'
-import {
-  setAudioItem,
-  setAudioPaused,
-  setAudioTrack,
-} from '@/store/actions/audioSystem'
+import { setPlayAudioTrack } from '@/store/actions/audioSystem'
 import { Track } from '@/store/types'
 
 export function useAudioPlayer(
@@ -14,51 +10,63 @@ export function useAudioPlayer(
   onTimeUpdate?: (currentTime: number) => void
 ) {
   const audio = useAudio()
+
   const dispatch = useAppDispatch()
+
   const paused = useAppSelector(({ audioSystem }) => audioSystem.paused)
   const active = useAppSelector(({ audioSystem }) => audioSystem.active)
+
   const track = active?.track ?? null
   const isCurrentTrack = track?.id === currentTrack?.id
+
   const [duration, setDuration] = React.useState(0)
   const [currentTime, setCurrentTime] = React.useState(0)
 
-  const currentTimeRef = React.useRef<number>(currentTime)
+  const onTimeUpdateRef = React.useRef<typeof onTimeUpdate>(onTimeUpdate)
 
   function toggle(currentTrack: Track) {
     const newPaused = !paused
 
-    if (!track || track.id !== currentTrack.id) {
-      dispatch(setAudioTrack(currentTrack))
+    dispatch(
+      setPlayAudioTrack({
+        track,
+        currentTrack,
+        paused: newPaused,
+      })
+    )
+  }
 
-      dispatch(setAudioPaused(false))
+  function updateAudioTime() {
+    if (!audio) return
 
-      return
+    setCurrentTime((prevState) => {
+      audio.currentTime = prevState
+
+      return prevState
+    })
+  }
+
+  function getTimeUpdate(audio: HTMLAudioElement) {
+    return () => {
+      onTimeUpdateRef.current?.(audio.currentTime)
     }
-
-    dispatch(setAudioPaused(newPaused))
   }
 
-  function setAudioTime(time: number) {
-    if (audio) {
-      audio.currentTime = time
-    }
-  }
-
-  function handleTimeUpdate() {
-    if (!audio || track?.id !== currentTrack?.id) return
-
-    onTimeUpdate?.(audio.currentTime)
-  }
+  React.useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate
+  })
 
   React.useEffect(() => {
     if (!audio) return () => undefined
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
+    const onTimeUpdate = getTimeUpdate(audio)
+
+    audio.addEventListener('timeupdate', onTimeUpdate)
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('timeupdate', onTimeUpdate)
     }
-  })
+  }, [audio])
 
   React.useEffect(() => {
     audio && setDuration(audio.duration)
@@ -70,7 +78,6 @@ export function useAudioPlayer(
 
   return {
     toggle,
-    currentTimeRef,
     paused: isCurrentTrack ? paused : true,
     state: {
       duration,
@@ -80,7 +87,7 @@ export function useAudioPlayer(
     },
     audio,
     isCurrentTrack,
-    setAudioTime,
+    updateAudioTime,
     currentTime: formatSecondsToMmSs(currentTime),
     duration: formatSecondsToMmSs(duration),
   }

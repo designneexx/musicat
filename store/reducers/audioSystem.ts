@@ -8,7 +8,9 @@ import {
   setAudioPaused,
   setAudioTrack,
   setAudioVolume,
-  setRandomTrack,
+  setNextAudioTrack,
+  setPlayAudioTrack,
+  setPreviousAudioTrack,
   toggleAudioLoop,
   toggleAudioMuted,
   toggleAudioPaused,
@@ -79,6 +81,58 @@ export const audioSystem = createReducer(audioSystemState, (builder) => {
         isLoaded: false,
         isError: false,
         track: payload,
+      }
+    })
+    .addCase(
+      setPlayAudioTrack,
+      (state, { payload: { track, currentTrack, paused } }) => {
+        if (track?.id === currentTrack.id) {
+          state.paused = paused
+
+          return
+        }
+
+        state.active = {
+          isLoading: true,
+          isLoaded: false,
+          isError: false,
+          track: currentTrack,
+        }
+
+        state.paused = false
+      }
+    )
+    .addCase(
+      setPreviousAudioTrack,
+      (state, { payload: { playlist, track } }) => {
+        const playlistIndex = playlist.findIndex(
+          (item) => item.src === track?.src
+        )
+        const prevTrack = playlist[playlistIndex - 1]
+
+        if (prevTrack) {
+          state.active = {
+            isLoading: true,
+            isLoaded: false,
+            isError: false,
+            track: prevTrack,
+          }
+        }
+      }
+    )
+    .addCase(setNextAudioTrack, (state, { payload: { playlist, track } }) => {
+      const playlistIndex = playlist.findIndex(
+        (item) => item.src === track?.src
+      )
+      const nextTrack = playlist[playlistIndex + 1]
+
+      if (nextTrack) {
+        state.active = {
+          isLoading: true,
+          isLoaded: false,
+          isError: false,
+          track: nextTrack,
+        }
       }
     })
 })

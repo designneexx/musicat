@@ -18,14 +18,16 @@ const initialUser: User = {
 export const user = createReducer(initialUser, (builder) => {
   builder
     .addCase(toggleTrackToFavorite, (state, { payload }) => {
-      const favoriteIndex = state.favoritesTracks.findIndex(
-        (item) => item.track.id === payload.track.id
+      const favoritesTracks = state.favoritesTracks
+
+      const favoriteIndex = favoritesTracks.findIndex(
+        ({ id }) => id === payload.id
       )
 
       if (favoriteIndex !== -1) {
-        state.favoritesTracks.splice(favoriteIndex, 1)
+        favoritesTracks.splice(favoriteIndex, 1)
       } else {
-        state.favoritesTracks.push(payload)
+        favoritesTracks.push(payload)
       }
     })
     .addCase(createPlaylist, (state, { payload }) => {
@@ -35,21 +37,23 @@ export const user = createReducer(initialUser, (builder) => {
       state.playlists.push(payload)
     })
     .addCase(removePlaylist, (state, { payload }) => {
-      const playlistIndex = state.playlists.findIndex(
-        (item) => item.id === payload
-      )
+      const playlists = state.playlists
+
+      const playlistIndex = playlists.findIndex((item) => item.id === payload)
 
       if (playlistIndex !== -1) {
-        state.playlists.splice(playlistIndex, 1)
+        playlists.splice(playlistIndex, 1)
       }
     })
     .addCase(addTrackToPlaylist, (state, { payload }) => {
-      const playlistIndex = state.playlists.findIndex(
+      const playlists = state.playlists
+
+      const playlistIndex = playlists.findIndex(
         (item) => item.id === payload.id
       )
 
       if (playlistIndex !== -1) {
-        state.playlists[playlistIndex].tracks.push(payload.track)
+        playlists[playlistIndex].tracks.push(payload)
       }
     })
 })

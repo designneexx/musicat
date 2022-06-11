@@ -13,15 +13,16 @@ export const playlist = createReducer(playlistState, (builder) => {
       state.active = payload
     })
     .addCase(shufflePlaylist.fulfilled, (state) => {
-      const newPlaylist = [...state.active]
+      const playlist = state.active
 
-      for (let i = newPlaylist.length - 1; i > 0; i--) {
+      for (let i = playlist.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
-        const temp = newPlaylist[i]
-        newPlaylist[i] = newPlaylist[j]
-        newPlaylist[j] = temp
+        const temp = playlist[i]
+
+        playlist[i] = playlist[j]
+        playlist[j] = temp
       }
 
-      state.active = newPlaylist
+      state.active = playlist
     })
 })

@@ -10,12 +10,11 @@ import Link from 'next/link'
 import React from 'react'
 
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
-import { useRange } from '@/hooks/useRange'
 import { useAppDispatch, useAppSelector } from '@/store'
 import {
-  setAudioItem,
-  setAudioTrack,
   setAudioVolume,
+  setNextAudioTrack,
+  setPreviousAudioTrack,
   toggleAudioLoop,
   toggleAudioMuted,
   toggleAudioPaused,
@@ -41,21 +40,11 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
   }
 
   function onPrevTrack() {
-    const playlistIndex = playlist.findIndex((item) => item.src === track?.src)
-    const prevTrack = playlist[playlistIndex - 1]
-
-    if (prevTrack) {
-      dispatch(setAudioTrack(prevTrack))
-    }
+    dispatch(setPreviousAudioTrack({ playlist, track }))
   }
 
   function onNextTrack() {
-    const playlistIndex = playlist.findIndex((item) => item.src === track?.src)
-    const nextTrack = playlist[playlistIndex + 1]
-
-    if (nextTrack) {
-      dispatch(setAudioTrack(nextTrack))
-    }
+    dispatch(setNextAudioTrack({ playlist, track }))
   }
 
   function onLoop() {
@@ -71,13 +60,9 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
   }
 
   function onChangeVolume({
-    target: { value, max },
+    target: { value },
   }: React.ChangeEvent<HTMLInputElement>) {
-    const maxValue = Number(max)
-    const targetValue = Number(value)
-    const relativeVolume = targetValue / maxValue
-
-    dispatch(setAudioVolume(relativeVolume))
+    dispatch(setAudioVolume(Number(value)))
   }
 
   function onBeforeChangeAudioTime() {
@@ -87,15 +72,13 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
   function onAfterChangeAudioTime() {
     setIsDragging(false)
 
-    audioPlayer.setAudioTime(audioPlayer.state.currentTime)
+    audioPlayer.updateAudioTime()
   }
 
   function onChangeAudioTime({
     target: { value },
   }: React.ChangeEvent<HTMLInputElement>) {
-    const currentTime = Number(value)
-
-    audioPlayer.state.setCurrentTime(currentTime)
+    audioPlayer.state.setCurrentTime(Number(value))
   }
 
   React.useEffect(() => {
@@ -104,7 +87,7 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
     return () => {
       window.removeEventListener('mouseup', onAfterChangeAudioTime)
     }
-  })
+  }, [isDragging])
 
   return (
     <div
@@ -149,8 +132,9 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
                       <input
                         type="range"
                         min={0}
-                        max={100}
-                        value={volume * 100}
+                        max={1}
+                        step={0.01}
+                        value={volume}
                         onChange={onChangeVolume}
                         className="range range-xs w-[100px]"
                       />

@@ -18,14 +18,9 @@ export type AudioSystem = {
 }
 
 export type User = {
-  favoritesTracks: FavoriteTrack[]
+  favoritesTracks: Track[]
   favoritesArtists: Artist[]
   playlists: Playlists[]
-}
-
-export type FavoriteTrack = {
-  id: string
-  track: Track
 }
 
 export type Playlists = {
@@ -51,10 +46,6 @@ export type Track = {
   image: string
 }
 
-export type AppState = {
-  data: MusiCatStorage
-}
-
 export type Artist = {
   id: number
   name: string
@@ -62,4 +53,15 @@ export type Artist = {
 
 export type Playlist = {
   active: Track[]
+}
+
+export type SetSiblingAudioTrack = {
+  playlist: Track[]
+  track: Track | null
+}
+
+export type SetPlayAudioTrack = {
+  track: Track | null
+  currentTrack: Track
+  paused: boolean
 }
