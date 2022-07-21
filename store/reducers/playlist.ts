@@ -4,7 +4,10 @@ import { setPlaylist, shufflePlaylist } from '@/store/actions/playlist'
 import { Playlist } from '@/store/types'
 
 const playlistState: Playlist = {
-  active: [],
+  active: {
+    album: null,
+    tracks: [],
+  },
 }
 
 export const playlist = createReducer(playlistState, (builder) => {
@@ -14,13 +17,14 @@ export const playlist = createReducer(playlistState, (builder) => {
     })
     .addCase(shufflePlaylist.fulfilled, (state) => {
       const playlist = state.active
+      const tracks = playlist.tracks
 
-      for (let i = playlist.length - 1; i > 0; i--) {
+      for (let i = tracks.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
-        const temp = playlist[i]
+        const temp = tracks[i]
 
-        playlist[i] = playlist[j]
-        playlist[j] = temp
+        tracks[i] = tracks[j]
+        tracks[j] = temp
       }
 
       state.active = playlist

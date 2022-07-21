@@ -1,13 +1,13 @@
 import { createAction } from '@reduxjs/toolkit'
 
-import { Playlists, Track } from '@/store/types'
+import { Album, Track, UserProfile } from '@/store/types'
 
 export const toggleTrackToFavorite = createAction<Track>(
   'user/addTrackToFavorite'
 )
 
-export const addTrackToPlaylist = createAction<Track>('user/addTrackToPlaylist')
+export const addAlbum = createAction<Album>('user/addPlaylist')
 
-export const addPlaylist = createAction<Playlists>('user/addPlaylist')
+export const removeAlbum = createAction<number>('user/removeAlbum')
 
-export const createPlaylist = createAction<Playlists>('user/createPlaylist')
+export const setProfile = createAction<UserProfile | null>('user/setProfile')

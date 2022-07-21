@@ -21,6 +21,7 @@ export type DeezerSearchApi = {
       id: number
     }
   }[]
+  next?: string
 }
 
 export type AlbumApi = {

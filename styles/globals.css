@@ -3,18 +3,36 @@
 @tailwind utilities;
 
 @layer base {
-    html, body {
+  html,
+  body {
+  }
 
+  @keyframes bounce {
+    10% {
+      transform: scaleX(0.3);
     }
 
-    #__next {
-        padding-bottom: 200px;
+    30% {
+      transform: scaleX(1);
     }
+
+    60% {
+      transform: scaleX(0.5);
+    }
+
+    80% {
+      transform: scaleX(0.75);
+    }
+
+    100% {
+      transform: scaleX(0.6);
+    }
+  }
 }
 
 @layer components {
-    .container {
-        max-width: 1280px;
-        @apply w-full mx-auto;
-    }
+  .container {
+    max-width: 1280px;
+    @apply w-full mx-auto pl-4 pr-4;
+  }
 }

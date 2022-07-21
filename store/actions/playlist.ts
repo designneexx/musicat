@@ -1,9 +1,9 @@
 import { createAction, createAsyncThunk } from '@reduxjs/toolkit'
 
 import { setAudioTrack } from '@/store/actions/audioSystem'
-import { MusiCatStorage, Track } from '@/store/types'
+import { ActivePlaylist, MusiCatStorage } from '@/store/types'
 
-export const setPlaylist = createAction<Track[]>('playlist/setPlayList')
+export const setPlaylist = createAction<ActivePlaylist>('playlist/setPlayList')
 
 export const shufflePlaylist = createAsyncThunk(
   'playlist/shufflePlaylist',
@@ -13,12 +13,12 @@ export const shufflePlaylist = createAsyncThunk(
     } = thunkApi.getState() as MusiCatStorage
 
     const randomTrack =
-      activePlaylist[Math.floor(Math.random() * activePlaylist.length)]
+      activePlaylist.tracks[
+        Math.floor(Math.random() * activePlaylist.tracks.length)
+      ]
 
     if (randomTrack) {
       thunkApi.dispatch(setAudioTrack(randomTrack))
     }
   }
 )
-
-export const removePlaylist = createAction<number>('playlist/removePlaylist')

@@ -1,11 +1,7 @@
-import { HeartIcon as OutHeaderIcon } from '@heroicons/react/outline'
-import { HeartIcon } from '@heroicons/react/solid'
-import cx from 'classnames'
 import { useRouter } from 'next/router'
 import React from 'react'
 
-import AudioPlaylist from '@/components/AudioPlaylist'
-import SimpleAudioPlay from '@/components/SimpleAudioPlay'
+import ShortTrack from '@/components/ShortTrack'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { toggleTrackToFavorite } from '@/store/actions/user'
 import { Track } from '@/store/types'
@@ -15,31 +11,25 @@ export default function Tracklist({
   isError,
   isLoading,
   onRefetchTracks,
-  onMore,
-  isMore,
 }: TrackListProps) {
-  const dispatch = useAppDispatch()
-  const favorites = useAppSelector(({ user }) => user.favoritesTracks)
   const router = useRouter()
-  const active = useAppSelector(({ audioSystem }) => audioSystem.active)
-  const track = active?.track ?? null
+
+  const dispatch = useAppDispatch()
+
+  const favorites = useAppSelector(({ user }) => user.favoritesTracks)
 
   function isFavorite(track: Track) {
     return Boolean(favorites.find((item) => item.id === track.id))
   }
 
   function onAddTrackToFavorite(track: Track) {
-    return () => {
-      dispatch(toggleTrackToFavorite(track))
-    }
+    dispatch(toggleTrackToFavorite(track))
   }
 
-  function onRedirectToPlaylist(id: number) {
-    return () => {
-      router.push({
-        pathname: `/playlist/${id}`,
-      })
-    }
+  function onViewAlbum(id: number) {
+    router.push({
+      pathname: `/playlist/${id}`,
+    })
   }
 
   return isLoading ? null : (
@@ -76,69 +66,17 @@ export default function Tracklist({
         </div>
       ) : null}
 
-      <div className="w-full grid grid-cols-3 gap-3">
-        {tracklist.map(({ title, id, album, artist, track: itemTrack }) => (
-          <div
-            className={cx('card bg-base-100 shadow-xl', {
-              'bg-base-200': track?.id === id,
-            })}
-            key={id}
-          >
-            <figure className="relative">
-              <img src={album.cover} alt="Shoes" />
-              <button
-                className={cx(
-                  'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-base-100 p-1 rounded',
-                  {
-                    'text-error': isFavorite(itemTrack),
-                  }
-                )}
-                onClick={onAddTrackToFavorite(itemTrack)}
-              >
-                {isFavorite(itemTrack) ? (
-                  <HeartIcon className="w-6 h-6" />
-                ) : (
-                  <OutHeaderIcon className="w-6 h-6" />
-                )}
-              </button>
-            </figure>
-            <div className="card-body">
-              <div className="w-full">
-                <div className=" grid grid-cols-[max-content,1fr] flex-wrap items-center gap-2 w-full">
-                  <SimpleAudioPlay track={itemTrack} />
-                  <div className="grow">
-                    <h2 className="card-title">{title}</h2>
-                    <p>{artist.name}</p>
-                  </div>
-                  <div className="col-span-2 flex gap-2 w-full items-center my-2 bg-base-300">
-                    <figure className="relative" title="Сохранить плейлист">
-                      <img src={album.cover_big} className="w-12 h-12" />
-                      <AudioPlaylist id={album.id} image={album.cover_big} />
-                    </figure>
-                    <div className="text-sm">
-                      Альбом:{' '}
-                      <button onClick={onRedirectToPlaylist(album.id)}>
-                        <span className="font-bold cursor-pointer">
-                          {album.title}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="w-full grid grid-cols-1 gap-3">
+        {tracklist.map(({ track, album }) => (
+          <ShortTrack
+            albumId={album.id}
+            track={track}
+            key={track.id}
+            onAddToFavorite={onAddTrackToFavorite}
+            onViewAlbum={onViewAlbum}
+            isFavorite={isFavorite(track)}
+          />
         ))}
-      </div>
-
-      <div className="flex w-ful items-center justify-center pt-6">
-        <button
-          className="btn btn-success btn-lg"
-          disabled={!isMore}
-          onClick={onMore}
-        >
-          Загрузить еще
-        </button>
       </div>
     </>
   )
@@ -149,8 +87,6 @@ type TrackListProps = {
   isLoading?: boolean
   isError?: boolean
   onRefetchTracks?(): void
-  onMore?(): void
-  isMore?: boolean
 }
 
 type TrackList = {

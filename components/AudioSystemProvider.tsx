@@ -1,6 +1,7 @@
+import Head from 'next/head'
 import React from 'react'
+import { useLocalStorage } from 'usehooks-ts'
 
-import AudioSystem from '@/components/AudioSystem'
 import { AudioContext } from '@/hooks/useAudio'
 import { useAppDispatch, useAppSelector } from '@/store'
 import {
@@ -11,7 +12,11 @@ import {
 
 export default function AudioSystemProvider({
   children,
-}: React.PropsWithChildren<any>) {
+}: {
+  children(isSelectedTrack: boolean): React.ReactNode
+}) {
+  const [tokenG, setTokenG] = useLocalStorage<string | null>('userToken', null)
+  const profile = useAppSelector(({ user }) => user.profile)
   const [audio, setAudio] = React.useState<HTMLAudioElement | null>(null)
   const dispatch = useAppDispatch()
   const playlist = useAppSelector(({ playlist }) => playlist.active)
@@ -20,8 +25,8 @@ export default function AudioSystemProvider({
   const muted = useAppSelector(({ audioSystem }) => audioSystem.muted)
   const active = useAppSelector(({ audioSystem }) => audioSystem.active)
   const volume = useAppSelector(({ audioSystem }) => audioSystem.volume)
-
   const track = active?.track ?? null
+  const isSelectedTrack = Boolean(audio) && Boolean(track)
 
   React.useEffect(() => {
     if (!track?.src) return
@@ -60,7 +65,7 @@ export default function AudioSystemProvider({
   })
 
   function onEnded() {
-    !loop && dispatch(setNextAudioTrack({ playlist, track }))
+    !loop && dispatch(setNextAudioTrack({ playlist: playlist.tracks, track }))
   }
 
   function onLoadedMetaData() {
@@ -85,8 +90,14 @@ export default function AudioSystemProvider({
 
   return (
     <AudioContext.Provider value={audio}>
-      {children}
-      <AudioSystem isSelectedTrack={Boolean(audio) && Boolean(track)} />
+      {children(Boolean(audio) && Boolean(track))}
+      <Head>
+        {isSelectedTrack ? (
+          <title>{`${track?.artist.name} - ${track?.title}`}</title>
+        ) : (
+          <title>Musicat</title>
+        )}
+      </Head>
     </AudioContext.Provider>
   )
 }

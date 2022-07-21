@@ -133,6 +133,8 @@ export const audioSystem = createReducer(audioSystemState, (builder) => {
           isError: false,
           track: nextTrack,
         }
+      } else {
+        state.paused = true
       }
     })
 })

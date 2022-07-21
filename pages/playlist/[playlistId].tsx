@@ -1,17 +1,70 @@
-import { HeartIcon as OutHeaderIcon } from '@heroicons/react/outline'
-import { HeartIcon } from '@heroicons/react/solid'
-import { nanoid } from '@reduxjs/toolkit'
-import cx from 'classnames'
-import { NextPage } from 'next'
+import { GetStaticPaths, GetStaticProps, NextPage } from 'next'
 import { useRouter } from 'next/router'
 import React from 'react'
+import { dehydrate, QueryClient, useQuery } from 'react-query'
 
+import ShortTrack from '@/components/ShortTrack'
 import SimpleAudioPlay from '@/components/SimpleAudioPlay'
-import { useDeezerQuery } from '@/hooks/useDeezerQuery'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { setPlaylist } from '@/store/actions/playlist'
 import { toggleTrackToFavorite } from '@/store/actions/user'
-import { Playlists, Track } from '@/store/types'
+import { Album, ShortAlbum, Track } from '@/store/types'
+import { deezerClient } from '@/utils/common/deezerClient'
+
+async function getAlbum({ signal, queryKey }: any) {
+  const [, albumId] = queryKey
+
+  try {
+    const response = await deezerClient.get(`album/${albumId}`, {
+      signal,
+    })
+
+    if (response.data.error) {
+      return Promise.reject(response.data.error)
+    }
+
+    return response.data
+  } catch (e) {
+    return Promise.reject(e)
+  }
+}
+
+function useAlbum(id: number) {
+  const response = useQuery(['album', id], getAlbum, {
+    enabled: Boolean(id),
+  })
+
+  const tracks = response.data?.tracks?.data
+
+  const shortAlbum: ShortAlbum = {
+    title: response.data?.title,
+    image: response.data?.cover,
+    id: response.data?.id,
+  }
+
+  const isInit = Boolean(response.data?.id) && Boolean(tracks)
+
+  const data: Album = {
+    ...shortAlbum,
+    tracks:
+      tracks?.map(({ title, preview, id, artist }: any) => ({
+        title,
+        src: preview,
+        id,
+        image: response.data.cover,
+        artist: {
+          id: artist.id,
+          name: artist.name,
+        },
+      })) || [],
+  }
+
+  return {
+    response,
+    data,
+    isInit,
+  }
+}
 
 const PlaylistIdPage: NextPage = () => {
   const dispatch = useAppDispatch()
@@ -19,53 +72,33 @@ const PlaylistIdPage: NextPage = () => {
   const query = router.query
   const id = Number(query.playlistId)
   const paused = useAppSelector(({ audioSystem }) => audioSystem.paused)
-  const active = useAppSelector(({ audioSystem }) => audioSystem.active)
   const favorites = useAppSelector(({ user }) => user.favoritesTracks)
-  const albumResponse = useDeezerQuery<any>(`album/${id}`, {
-    queryKey: 'album',
-    options: {
-      refetchOnWindowFocus: false,
-    },
-  })
-  const currentTrack = active?.track
-  const currentPlaylist: Playlists = {
-    title: albumResponse.data?.title,
-    excerpt: '',
-    image: albumResponse.data?.cover,
-    id: albumResponse.data?.id,
-    tracks:
-      albumResponse.data?.tracks?.data?.map(
-        ({ title, preview, id, artist }: any) => ({
-          title,
-          src: preview,
-          id,
-          image: albumResponse.data.cover,
-          artist: {
-            id: artist.id,
-            name: artist.name,
-          },
-        })
-      ) || [],
-  }
+  const album = useAlbum(id)
 
   function onAddTrackToFavorite(track: Track) {
-    return () => {
-      dispatch(
-        toggleTrackToFavorite({
-          id: nanoid(),
-          track,
-        })
-      )
-    }
+    dispatch(toggleTrackToFavorite(track))
   }
 
   function isFavorite(track: Track) {
-    return Boolean(favorites.find((item) => item.track.id === track.id))
+    return Boolean(favorites.find((item) => item.id === track.id))
   }
 
   React.useEffect(() => {
-    dispatch(setPlaylist(currentPlaylist?.tracks || []))
-  }, [currentPlaylist])
+    if (!album.isInit) return
+
+    const shortAlbum = {
+      title: album.data.title,
+      image: album.data.image,
+      id: album.data.id,
+    }
+
+    dispatch(
+      setPlaylist({
+        album: shortAlbum,
+        tracks: album.data.tracks,
+      })
+    )
+  }, [album.response.data])
 
   return (
     <div className="">
@@ -73,17 +106,14 @@ const PlaylistIdPage: NextPage = () => {
         <div
           className="w-full h-full absolute top-0 left-0 bg-cover bg-no-repeat bg-center flex items-center justify-center relative"
           style={{
-            backgroundImage: `url(${
-              currentPlaylist.image ||
-              'https://images.pexels.com/photos/3631430/pexels-photo-3631430.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'
-            })`,
+            backgroundImage: `url(${album.data.image})`,
           }}
         >
           <div
             className="w-full h-full absolute top-0 left-0 flex flex-col gap-3 content-center items-center justify-center"
             style={{ backgroundColor: `rgba(0, 0, 0, .75)` }}
           >
-            {albumResponse.isLoading ? (
+            {album.response.isLoading ? (
               <svg
                 role="status"
                 className="w-24 h-24 animate-spin fill-blue-600"
@@ -106,12 +136,12 @@ const PlaylistIdPage: NextPage = () => {
                   <SimpleAudioPlay
                     paused={paused}
                     iconClassName="w-16 h-16 text-white"
-                    track={currentPlaylist.tracks[0] ?? null}
+                    track={album.data.tracks[0] ?? null}
                   />
                 </div>
-                <h3 className="text-3xl text-white">{currentPlaylist.title}</h3>
+                <h3 className="text-3xl text-white">{album.data.title}</h3>
                 <p className="text-sm text-white">
-                  {currentPlaylist.tracks[0]?.artist.name}
+                  {album.data.tracks[0]?.artist.name}
                 </p>
               </>
             )}
@@ -121,47 +151,38 @@ const PlaylistIdPage: NextPage = () => {
 
       <div className="container py-6">
         <div className="flex flex-col gap-4 justify-center">
-          {currentPlaylist?.tracks?.map((item) => (
-            <div
-              className={cx(
-                'bg-base-300 rounded shadow-lg grid grid-cols-[max-content,max-content,1fr,max-content]',
-                {
-                  'shadow-3xl': item.id === currentTrack?.id,
-                }
-              )}
+          {album.data?.tracks?.map((item) => (
+            <ShortTrack
               key={item.id}
-            >
-              <div className="p-3 bg-base-100 flex items-center justify-center">
-                <SimpleAudioPlay track={item} />
-              </div>
-              <div className="p-3 flex bg-base-200 items-center justify-center">
-                <img src={item.image} className="w-10 h-10 rounded" />
-              </div>
-              <div className="p-3 flex items-center">
-                <div
-                  className={cx({
-                    'text-primary': item.id === currentTrack?.id,
-                  })}
-                >
-                  <div className="text-lg">{item.title}</div>
-                  <span className="block">{item.artist.name}</span>
-                </div>
-              </div>
-              <div className="p-3 bg-base-100 flex items-center justify-center">
-                <button onClick={onAddTrackToFavorite(item)}>
-                  {isFavorite(item) ? (
-                    <HeartIcon className="w-4 h-4" />
-                  ) : (
-                    <OutHeaderIcon className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+              track={item}
+              isFavorite={isFavorite(item)}
+              onAddToFavorite={onAddTrackToFavorite}
+            />
           ))}
         </div>
       </div>
     </div>
   )
+}
+
+export const getStaticProps: GetStaticProps = async (context) => {
+  const id = Number(context.params?.playlistId)
+  const queryClient = new QueryClient()
+
+  await queryClient.prefetchQuery(['getPokemon', id], getAlbum)
+
+  return {
+    props: {
+      dehydratedState: dehydrate(queryClient),
+    },
+  }
+}
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  }
 }
 
 export default PlaylistIdPage

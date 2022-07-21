@@ -1,12 +1,24 @@
-import {
-  HeartIcon,
-  PauseIcon,
-  PlayIcon,
-  VolumeOffIcon,
-  VolumeUpIcon,
-} from '@heroicons/react/solid'
+import { AiFillHeart } from '@react-icons/all-files/ai/AiFillHeart'
+import { AiOutlineHeart } from '@react-icons/all-files/ai/AiOutlineHeart'
+import { BiDevices } from '@react-icons/all-files/bi/BiDevices'
+import { FaBackward } from '@react-icons/all-files/fa/FaBackward'
+import { FaForward } from '@react-icons/all-files/fa/FaForward'
+import { FaHeart } from '@react-icons/all-files/fa/FaHeart'
+import { FaListUl } from '@react-icons/all-files/fa/FaListUl'
+import { FaPause } from '@react-icons/all-files/fa/FaPause'
+import { FaPlay } from '@react-icons/all-files/fa/FaPlay'
+import { FaPlus } from '@react-icons/all-files/fa/FaPlus'
+import { FaShare } from '@react-icons/all-files/fa/FaShare'
+import { ImLoop } from '@react-icons/all-files/im/ImLoop'
+import { ImShuffle } from '@react-icons/all-files/im/ImShuffle'
+import { ImVolumeHigh } from '@react-icons/all-files/im/ImVolumeHigh'
+import { ImVolumeLow } from '@react-icons/all-files/im/ImVolumeLow'
+import { ImVolumeMedium } from '@react-icons/all-files/im/ImVolumeMedium'
+import { ImVolumeMute2 } from '@react-icons/all-files/im/ImVolumeMute2'
 import cx from 'classnames'
+import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import React from 'react'
 
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
@@ -20,8 +32,27 @@ import {
   toggleAudioPaused,
 } from '@/store/actions/audioSystem'
 import { shufflePlaylist } from '@/store/actions/playlist'
+import { toggleTrackToFavorite } from '@/store/actions/user'
+import { Track } from '@/store/types'
 
-export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
+function VolumeIcon({ volume, className }: VolumeIconProps) {
+  if (volume > 0.65) {
+    return <ImVolumeHigh className={className} />
+  }
+
+  if (volume > 0.32) {
+    return <ImVolumeMedium className={className} />
+  }
+
+  return <ImVolumeLow className={className} />
+}
+
+type VolumeIconProps = {
+  volume: number
+  className?: string
+}
+
+export default function AudioSystem() {
   const dispatch = useAppDispatch()
   const playlist = useAppSelector(({ playlist }) => playlist.active)
   const paused = useAppSelector(({ audioSystem }) => audioSystem.paused)
@@ -29,22 +60,34 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
   const muted = useAppSelector(({ audioSystem }) => audioSystem.muted)
   const volume = useAppSelector(({ audioSystem }) => audioSystem.volume)
   const active = useAppSelector(({ audioSystem }) => audioSystem.active)
+  const favorites = useAppSelector(({ user }) => user.favoritesTracks)
   const track = active?.track ?? null
   const [isDragging, setIsDragging] = React.useState<boolean>(false)
   const audioPlayer = useAudioPlayer(track, (currentTime) => {
     !isDragging && audioPlayer.state.setCurrentTime(currentTime)
   })
+  const router = useRouter()
+
+  function isFavorite(track: Track | null) {
+    return Boolean(favorites.find((item) => item.id === track?.id))
+  }
 
   function onTogglePlay() {
     dispatch(toggleAudioPaused())
   }
 
+  function onViewPlaylist() {
+    router.push({
+      pathname: `/playlist`,
+    })
+  }
+
   function onPrevTrack() {
-    dispatch(setPreviousAudioTrack({ playlist, track }))
+    dispatch(setPreviousAudioTrack({ playlist: playlist.tracks, track }))
   }
 
   function onNextTrack() {
-    dispatch(setNextAudioTrack({ playlist, track }))
+    dispatch(setNextAudioTrack({ playlist: playlist.tracks, track }))
   }
 
   function onLoop() {
@@ -57,6 +100,10 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
 
   function onShufflePlaylist() {
     dispatch(shufflePlaylist())
+  }
+
+  function onAddTrackToFavorite() {
+    track && dispatch(toggleTrackToFavorite(track))
   }
 
   function onChangeVolume({
@@ -90,165 +137,146 @@ export default function AudioSystem({ isSelectedTrack }: AudioSystemProps) {
   }, [isDragging])
 
   return (
-    <div
-      className="w-full bg-base-300 p-6 container z-50 fixed bottom-8 left-1/2 -translate-x-1/2 rounded shadow-lg rounded-lg"
-      style={{ minHeight: '164px' }}
-    >
-      {isSelectedTrack ? (
-        <>
-          <div className="flex">
-            <div className="w-full">
-              <div className="flex gap-4 items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <img
-                      className="w-full rounded hidden md:block w-12 h-12"
-                      src={track?.image}
-                      alt="Album Pic"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-medium">{track?.title}</h3>
-                    <Link href={`/artist/${track?.artist?.id}`}>
-                      <p className="cursor-pointer text-sm mt-1">
-                        {track?.artist.name}
-                      </p>
-                    </Link>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={onToggleMute}
-                      className={cx('btn btn-ghost p-0 hover:bg-transparent', {
-                        'opacity-50': !volume || muted,
-                      })}
-                    >
-                      {!volume || muted ? (
-                        <VolumeOffIcon className="w-6 h-6" />
-                      ) : (
-                        <VolumeUpIcon className="w-6 h-6" />
-                      )}
-                    </button>
-                    <div className="flex gap-1 items-center">
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={volume}
-                        onChange={onChangeVolume}
-                        className="range range-xs w-[100px]"
-                      />
-                      <span>{Math.floor(volume * 100)}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="">
-                  <button className="btn btn-ghost p-0 hover:bg-transparent">
-                    <HeartIcon className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="pt-4">
-            <div className="flex gap-6">
-              <div className="flex justify-between gap-6 items-center">
-                <button
-                  className="btn btn-ghost p-0 hover:bg-transparent"
-                  onClick={onShufflePlaylist}
-                  disabled={playlist.length < 2}
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M6.59 12.83L4.4 15c-.58.58-1.59 1-2.4 1H0v-2h2c.29 0 .8-.2 1-.41l2.17-2.18 1.42 1.42zM16 4V1l4 4-4 4V6h-2c-.29 0-.8.2-1 .41l-2.17 2.18L9.4 7.17 11.6 5c.58-.58 1.59-1 2.41-1h2zm0 10v-3l4 4-4 4v-3h-2c-.82 0-1.83-.42-2.41-1l-8.6-8.59C2.8 6.21 2.3 6 2 6H0V4h2c.82 0 1.83.42 2.41 1l8.6 8.59c.2.2.7.41.99.41h2z" />
-                  </svg>
-                </button>
-                <button
-                  className="btn btn-ghost p-0 hover:bg-transparent"
-                  onClick={onPrevTrack}
-                  disabled={playlist.length < 2}
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M4 5h3v10H4V5zm12 0v10l-9-5 9-5z" />
-                  </svg>
-                </button>
-                <button
-                  className="btn btn-ghost p-0 hover:bg-transparent"
-                  onClick={onNextTrack}
-                  disabled={playlist.length < 2}
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M13 5h3v10h-3V5zM4 5l9 5-9 5V5z" />
-                  </svg>
-                </button>
-                <button
-                  className={cx('btn btn-ghost p-0 hover:bg-transparent', {
-                    'text-primary': loop,
-                  })}
-                  onClick={onLoop}
-                >
-                  <svg
-                    className="w-8 h-8"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M5 4a2 2 0 0 0-2 2v6H0l4 4 4-4H5V6h7l2-2H5zm10 4h-3l4-4 4 4h-3v6a2 2 0 0 1-2 2H6l2-2h7V8z" />
-                  </svg>
-                </button>
-                <button
-                  className="btn btn-ghost p-0 hover:bg-transparent rounded-full bg-red-light shadow-lg"
-                  onClick={onTogglePlay}
-                >
-                  {paused ? (
-                    <PlayIcon className="w-10 h-10" />
-                  ) : (
-                    <PauseIcon className="w-10 h-10" />
-                  )}
-                </button>
-              </div>
-              <div className="grow">
-                <div className="flex justify-between text-sm mb-2">
-                  <p>{audioPlayer.currentTime}</p>
-                  <p>{audioPlayer.duration}</p>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  step={0.01}
-                  max={audioPlayer.state.duration}
-                  value={audioPlayer.state.currentTime}
-                  onChange={onChangeAudioTime}
-                  onMouseDown={onBeforeChangeAudioTime}
-                  className="range range-xs w-full"
+    <div className="w-full bg-base-300 p-6 rounded shadow-lg rounded-lg">
+      <div className="flex">
+        <div className="w-full">
+          <div className="flex gap-4 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 relative">
+                <Image
+                  src={track?.image || ''}
+                  alt=""
+                  layout="fill"
+                  objectFit="contain"
+                  className="w-full rounded hidden md:block w-12 h-12"
                 />
               </div>
+              <div>
+                <h3 className="text-2xl font-medium">{track?.title}</h3>
+                <Link href={`/artist/${track?.artist?.id}`}>
+                  <p className="cursor-pointer text-sm mt-1">
+                    {track?.artist.name}
+                  </p>
+                </Link>
+              </div>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={onToggleMute}
+                  className={cx('btn btn-ghost p-0 hover:bg-transparent', {
+                    'opacity-50': !volume || muted,
+                  })}
+                >
+                  {!volume || muted ? (
+                    <ImVolumeMute2 className="w-6 h-6" />
+                  ) : (
+                    <VolumeIcon volume={volume} className="w-6 h-6" />
+                  )}
+                </button>
+                <div className="flex gap-1 items-center">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={volume}
+                    onChange={onChangeVolume}
+                    className="range range-xs w-[100px]"
+                  />
+                  <span>{Math.floor(volume * 100)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 items-center">
+              <button className="btn btn-ghost p-0 hover:bg-transparent">
+                <FaPlus className="w-4 h-4" />
+              </button>
+              <button className="btn btn-ghost p-0 hover:bg-transparent">
+                <FaShare className="w-4 h-4" />
+              </button>
+              <button className="btn btn-ghost p-0 hover:bg-transparent">
+                <BiDevices className="w-4 h-4" />
+              </button>
+              <button
+                className="btn btn-ghost p-0 hover:bg-transparent"
+                onClick={onAddTrackToFavorite}
+              >
+                {isFavorite(track) ? (
+                  <AiFillHeart className="w-4 h-4" />
+                ) : (
+                  <AiOutlineHeart className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </div>
-        </>
-      ) : (
-        <div className="flex absolute top-0 left-0 h-full items-center justify-center w-full">
-          <h3 className="text-xl">Вы еще не включили не один трек</h3>
         </div>
-      )}
+      </div>
+      <div className="pt-4">
+        <div className="flex gap-6">
+          <div className="flex justify-between gap-6 items-center">
+            <button
+              className="btn btn-ghost p-0 hover:bg-transparent"
+              onClick={onViewPlaylist}
+            >
+              <FaListUl className="w-6 h-6" />
+            </button>
+            <button
+              className="btn btn-ghost p-0 hover:bg-transparent"
+              onClick={onShufflePlaylist}
+              disabled={playlist.tracks.length < 2}
+            >
+              <ImShuffle className="w-6 h-6" />
+            </button>
+            <button
+              className="btn btn-ghost p-0 hover:bg-transparent"
+              onClick={onPrevTrack}
+              disabled={playlist.tracks.length < 2}
+            >
+              <FaBackward className="w-6 h-6" />
+            </button>
+            <button
+              className="btn btn-ghost p-0 hover:bg-transparent rounded-full"
+              onClick={onTogglePlay}
+            >
+              {paused ? (
+                <FaPlay className="w-6 h-6" />
+              ) : (
+                <FaPause className="w-6 h-6" />
+              )}
+            </button>
+            <button
+              className="btn btn-ghost p-0 hover:bg-transparent"
+              onClick={onNextTrack}
+              disabled={playlist.tracks.length < 2}
+            >
+              <FaForward className="w-6 h-6" />
+            </button>
+            <button
+              className={cx('btn btn-ghost p-0 hover:bg-transparent', {
+                'text-primary': loop,
+              })}
+              onClick={onLoop}
+            >
+              <ImLoop className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="grow">
+            <div className="flex justify-between text-sm mb-2">
+              <p>{audioPlayer.currentTime}</p>
+              <p>{audioPlayer.duration}</p>
+            </div>
+            <input
+              type="range"
+              min={0}
+              step={0.01}
+              max={audioPlayer.state.duration}
+              value={audioPlayer.state.currentTime}
+              onChange={onChangeAudioTime}
+              onMouseDown={onBeforeChangeAudioTime}
+              className="range range-xs w-full"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
-
-type AudioSystemProps = {
-  isSelectedTrack: boolean
 }

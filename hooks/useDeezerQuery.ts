@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import { useQuery, UseQueryOptions } from 'react-query'
 import { QueryKey } from 'react-query/types/core/types'
 
-import { fetchDeezerApi } from '@/helpers/fetchDeezerApi'
+import { deezerClient } from '@/utils/common/deezerClient'
 
 export function useDeezerQuery<
   TQueryFnData = unknown,
@@ -22,13 +22,23 @@ export function useDeezerQuery<
     apiPathRef.current = apiPath
   }, [apiPath])
 
-  const queryFn = useCallback(async () => {
-    return fetchDeezerApi<TQueryFnData>(apiPathRef.current)
-  }, [])
-
   return useQuery<TQueryFnData, TError, TData, TQueryKey>(
     queryKey,
-    queryFn,
+    async ({ signal }) => {
+      try {
+        const response = await deezerClient.get(apiPathRef.current, {
+          signal,
+        })
+
+        if (response.data.error) {
+          return Promise.reject(response.data.error)
+        }
+
+        return response.data
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    },
     options
   )
 }

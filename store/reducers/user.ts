@@ -1,10 +1,9 @@
 import { createReducer } from '@reduxjs/toolkit'
 
-import { removePlaylist } from '@/store/actions/playlist'
 import {
-  addPlaylist,
-  addTrackToPlaylist,
-  createPlaylist,
+  addAlbum,
+  removeAlbum,
+  setProfile,
   toggleTrackToFavorite,
 } from '@/store/actions/user'
 import { User } from '@/store/types'
@@ -13,6 +12,7 @@ const initialUser: User = {
   favoritesTracks: [],
   playlists: [],
   favoritesArtists: [],
+  profile: null,
 }
 
 export const user = createReducer(initialUser, (builder) => {
@@ -30,13 +30,10 @@ export const user = createReducer(initialUser, (builder) => {
         favoritesTracks.push(payload)
       }
     })
-    .addCase(createPlaylist, (state, { payload }) => {
+    .addCase(addAlbum, (state, { payload }) => {
       state.playlists.push(payload)
     })
-    .addCase(addPlaylist, (state, { payload }) => {
-      state.playlists.push(payload)
-    })
-    .addCase(removePlaylist, (state, { payload }) => {
+    .addCase(removeAlbum, (state, { payload }) => {
       const playlists = state.playlists
 
       const playlistIndex = playlists.findIndex((item) => item.id === payload)
@@ -45,15 +42,7 @@ export const user = createReducer(initialUser, (builder) => {
         playlists.splice(playlistIndex, 1)
       }
     })
-    .addCase(addTrackToPlaylist, (state, { payload }) => {
-      const playlists = state.playlists
-
-      const playlistIndex = playlists.findIndex(
-        (item) => item.id === payload.id
-      )
-
-      if (playlistIndex !== -1) {
-        playlists[playlistIndex].tracks.push(payload)
-      }
+    .addCase(setProfile, (state, { payload }) => {
+      state.profile = payload
     })
 })

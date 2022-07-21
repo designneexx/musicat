@@ -20,14 +20,26 @@ export type AudioSystem = {
 export type User = {
   favoritesTracks: Track[]
   favoritesArtists: Artist[]
-  playlists: Playlists[]
+  playlists: Album[]
+  profile: UserProfile | null
 }
 
-export type Playlists = {
+export type UserProfile = {
+  avatar_url: string
+  email: string
+  grant: number
+  id: number
+  name: string
+  token: string
+}
+
+export type ShortAlbum = {
   id: number
   image: string
   title: string
-  excerpt: string
+}
+
+export interface Album extends ShortAlbum {
   tracks: Track[]
 }
 
@@ -44,6 +56,7 @@ export type Track = {
   artist: Artist
   title: string
   image: string
+  album: ShortAlbum
 }
 
 export type Artist = {
@@ -51,8 +64,13 @@ export type Artist = {
   name: string
 }
 
+export type ActivePlaylist = {
+  album: null | ShortAlbum
+  tracks: Track[]
+}
+
 export type Playlist = {
-  active: Track[]
+  active: ActivePlaylist
 }
 
 export type SetSiblingAudioTrack = {

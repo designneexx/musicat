@@ -1,28 +1,43 @@
 import type { NextPage } from 'next'
+import Head from 'next/head'
 import React from 'react'
+import { useQuery } from 'react-query'
 
 import Tracklist from '@/components/Tracklist'
-import { useDeezerQuery } from '@/hooks/useDeezerQuery'
 import { DeezerSearchApi } from '@/pages/api/hello'
 import { useAppDispatch } from '@/store'
 import { setPlaylist } from '@/store/actions/playlist'
 import { Track } from '@/store/types'
+import { deezerClient } from '@/utils/common/deezerClient'
 
-const Home: NextPage = () => {
-  const [query, setQuery] = React.useState<string>('og buda')
-  const [resQuery, setResQuery] = React.useState(query)
-  const searchResponse = useDeezerQuery<DeezerSearchApi>(
-    `search?q=${resQuery}`,
+function useSearchTracks(term: string) {
+  const response = useQuery<DeezerSearchApi>(
+    ['users', term],
+    async ({ signal, queryKey }) => {
+      const [, queryTerm] = queryKey
+
+      try {
+        const response = await deezerClient.get(`search?q=${queryTerm}`, {
+          signal,
+        })
+
+        if (response.data.error) {
+          return Promise.reject(response.data.error)
+        }
+
+        return response.data
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    },
     {
-      queryKey: ['users', resQuery],
-      options: {
-        refetchOnWindowFocus: false,
-      },
+      enabled: Boolean(term),
     }
   )
+  const data = response.data?.data
 
   const playlist: Track[] =
-    searchResponse.data?.data?.map(({ title, preview, album, artist, id }) => ({
+    data?.map(({ title, preview, album, artist, id }) => ({
       id,
       src: preview,
       title,
@@ -31,22 +46,38 @@ const Home: NextPage = () => {
         name: artist.name,
         id: artist.id,
       },
+      album: {
+        id: album.id,
+        image: album.cover_big,
+        title: album.title,
+      },
     })) || []
   const audioData =
-    searchResponse.data?.data?.map(
-      ({ title, id, preview, album, artist }, index) => ({
-        title,
-        id,
-        preview,
-        album,
-        artist,
-        track: playlist[index],
-      })
-    ) || []
+    data?.map(({ title, id, preview, album, artist }, index) => ({
+      title,
+      id,
+      preview,
+      album,
+      artist,
+      track: playlist[index],
+    })) || []
+
+  return {
+    response,
+    playlist,
+    audioData,
+    data,
+  }
+}
+
+const Home: NextPage = () => {
+  const [query, setQuery] = React.useState<string>('')
+  const [resQuery, setResQuery] = React.useState(query)
+  const searchTracks = useSearchTracks(resQuery)
   const dispatch = useAppDispatch()
 
   function onRefetchTracks() {
-    searchResponse.refetch()
+    searchTracks.response.refetch()
   }
 
   function onChangeQuery({ target }: React.ChangeEvent<HTMLInputElement>) {
@@ -58,14 +89,18 @@ const Home: NextPage = () => {
   }
 
   React.useEffect(() => {
-    dispatch(setPlaylist(playlist))
-  }, [searchResponse.data?.data])
+    if (searchTracks.data) {
+      dispatch(
+        setPlaylist({
+          album: null,
+          tracks: searchTracks.playlist,
+        })
+      )
+    }
+  }, [searchTracks.data])
 
   return (
     <div className="container  py-6">
-      <h2 className="text-2xl">{`По вашему запросу 163onmyneck найдено ${
-        playlist?.length || 0
-      } аудиозаписей`}</h2>
       <div className="grid grid-cols-[1fr,max-content] gap-2 items-center w-full py-4">
         <input
           className="input input-lg w-full input-bordered rounded-tl-none rounded-bl-none border-base-300"
@@ -79,9 +114,9 @@ const Home: NextPage = () => {
       </div>
 
       <Tracklist
-        tracklist={audioData}
-        isLoading={searchResponse.isLoading}
-        isError={searchResponse.isError}
+        tracklist={searchTracks.audioData}
+        isLoading={searchTracks.response.isLoading}
+        isError={searchTracks.response.isError}
         onRefetchTracks={onRefetchTracks}
       />
     </div>
