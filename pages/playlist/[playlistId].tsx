@@ -150,6 +150,19 @@ const PlaylistIdPage: NextPage = () => {
       </div>
 
       <div className="container py-6">
+        {album.response.isError && (
+          <div className="flex flex-col gap-2">
+            <div className="badge badge-error gap-2">
+              Ошибка при загрузке альбома
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => album.response.refetch()}
+            >
+              Загрузить снова
+            </button>
+          </div>
+        )}
         <div className="flex flex-col gap-4 justify-center">
           {album.data?.tracks?.map((item) => (
             <ShortTrack

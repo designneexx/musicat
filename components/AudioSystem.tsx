@@ -2,6 +2,7 @@ import { AiFillHeart } from '@react-icons/all-files/ai/AiFillHeart'
 import { AiOutlineHeart } from '@react-icons/all-files/ai/AiOutlineHeart'
 import { BiDevices } from '@react-icons/all-files/bi/BiDevices'
 import { FaBackward } from '@react-icons/all-files/fa/FaBackward'
+import { FaCheck } from '@react-icons/all-files/fa/FaCheck'
 import { FaForward } from '@react-icons/all-files/fa/FaForward'
 import { FaHeart } from '@react-icons/all-files/fa/FaHeart'
 import { FaListUl } from '@react-icons/all-files/fa/FaListUl'
@@ -32,7 +33,7 @@ import {
   toggleAudioPaused,
 } from '@/store/actions/audioSystem'
 import { shufflePlaylist } from '@/store/actions/playlist'
-import { toggleTrackToFavorite } from '@/store/actions/user'
+import { toggleAlbum, toggleTrackToFavorite } from '@/store/actions/user'
 import { Track } from '@/store/types'
 
 function VolumeIcon({ volume, className }: VolumeIconProps) {
@@ -67,6 +68,10 @@ export default function AudioSystem() {
     !isDragging && audioPlayer.state.setCurrentTime(currentTime)
   })
   const router = useRouter()
+  const userPlaylists = useAppSelector(({ user }) => user.playlists)
+  const isFavoriteAlbum = Boolean(
+    track && userPlaylists.map((item) => item.id).includes(track.id)
+  )
 
   function isFavorite(track: Track | null) {
     return Boolean(favorites.find((item) => item.id === track?.id))
@@ -122,10 +127,22 @@ export default function AudioSystem() {
     audioPlayer.updateAudioTime()
   }
 
+  function onToggleAlbumToFavorite() {
+    track?.album && dispatch(toggleAlbum(track.album))
+  }
+
   function onChangeAudioTime({
     target: { value },
   }: React.ChangeEvent<HTMLInputElement>) {
     audioPlayer.state.setCurrentTime(Number(value))
+  }
+
+  function onViewAlbum() {
+    if (track) {
+      router.push({
+        pathname: `/playlist/${track.album.id}`,
+      })
+    }
   }
 
   React.useEffect(() => {
@@ -142,7 +159,10 @@ export default function AudioSystem() {
         <div className="w-full">
           <div className="flex gap-4 items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 relative">
+              <div
+                className="w-12 h-12 relative cursor-pointer"
+                onClick={onViewAlbum}
+              >
                 <Image
                   src={track?.image || ''}
                   alt=""
@@ -187,8 +207,15 @@ export default function AudioSystem() {
               </div>
             </div>
             <div className="flex gap-2 items-center">
-              <button className="btn btn-ghost p-0 hover:bg-transparent">
-                <FaPlus className="w-4 h-4" />
+              <button
+                className="btn btn-ghost p-0 hover:bg-transparent"
+                onClick={onToggleAlbumToFavorite}
+              >
+                {isFavoriteAlbum ? (
+                  <FaCheck className="w-4 h-4" />
+                ) : (
+                  <FaPlus className="w-4 h-4" />
+                )}
               </button>
               <button className="btn btn-ghost p-0 hover:bg-transparent">
                 <FaShare className="w-4 h-4" />

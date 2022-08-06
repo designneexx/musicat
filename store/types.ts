@@ -20,7 +20,7 @@ export type AudioSystem = {
 export type User = {
   favoritesTracks: Track[]
   favoritesArtists: Artist[]
-  playlists: Album[]
+  playlists: ShortAlbum[]
   profile: UserProfile | null
 }
 

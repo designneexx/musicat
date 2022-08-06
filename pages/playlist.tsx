@@ -50,7 +50,7 @@ const PlaylistPage: NextPage = () => {
             track={item}
             isFavorite={isFavorite(item)}
             onAddToFavorite={onAddTrackToFavorite}
-            albumId={item.album.id}
+            albumId={item.album?.id}
             onViewAlbum={onViewAlbum}
           />
         ))}
