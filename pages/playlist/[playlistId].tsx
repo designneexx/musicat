@@ -182,7 +182,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
   const id = Number(context.params?.playlistId)
   const queryClient = new QueryClient()
 
-  await queryClient.prefetchQuery(['getPokemon', id], getAlbum)
+  await queryClient.prefetchQuery(['album', id], getAlbum)
 
   return {
     props: {

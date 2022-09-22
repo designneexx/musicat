@@ -23,6 +23,7 @@ import { useRouter } from 'next/router'
 import React from 'react'
 
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
+import { useAudioSystem } from '@/hooks/useAudioSystem'
 import { useAppDispatch, useAppSelector } from '@/store'
 import {
   setAudioVolume,
@@ -37,30 +38,15 @@ import { toggleAlbum, toggleTrackToFavorite } from '@/store/actions/user'
 import { Track } from '@/store/types'
 
 function VolumeIcon({ volume, className }: VolumeIconProps) {
-  if (volume > 0.65) {
-    return <ImVolumeHigh className={className} />
-  }
-
-  if (volume > 0.32) {
-    return <ImVolumeMedium className={className} />
-  }
+  if (volume > 0.65) return <ImVolumeHigh className={className} />
+  if (volume > 0.32) return <ImVolumeMedium className={className} />
 
   return <ImVolumeLow className={className} />
 }
 
-type VolumeIconProps = {
-  volume: number
-  className?: string
-}
-
 export default function AudioSystem() {
   const dispatch = useAppDispatch()
-  const playlist = useAppSelector(({ playlist }) => playlist.active)
-  const paused = useAppSelector(({ audioSystem }) => audioSystem.paused)
-  const loop = useAppSelector(({ audioSystem }) => audioSystem.loop)
-  const muted = useAppSelector(({ audioSystem }) => audioSystem.muted)
-  const volume = useAppSelector(({ audioSystem }) => audioSystem.volume)
-  const active = useAppSelector(({ audioSystem }) => audioSystem.active)
+  const { playlist, paused, active, loop, muted, volume } = useAudioSystem()
   const favorites = useAppSelector(({ user }) => user.favoritesTracks)
   const track = active?.track ?? null
   const [isDragging, setIsDragging] = React.useState<boolean>(false)
@@ -139,9 +125,12 @@ export default function AudioSystem() {
 
   function onViewAlbum() {
     if (track) {
-      router.push({
-        pathname: `/playlist/${track.album.id}`,
-      })
+      router
+        .push({
+          pathname: `/playlist/${track.album.id}`,
+        })
+        .then(console.log)
+        .catch(console.error)
     }
   }
 
@@ -306,4 +295,9 @@ export default function AudioSystem() {
       </div>
     </div>
   )
+}
+
+type VolumeIconProps = {
+  volume: number
+  className?: string
 }
